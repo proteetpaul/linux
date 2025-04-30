@@ -1206,6 +1206,17 @@ static int node_demotion[MAX_NUMNODES] __read_mostly =
  */
 int next_demotion_node(int node)
 {
+	/**
+	Based off the email thread:
+	"Another thing you may need to check is the next_demotion_node() function 
+	under migrate.c. This function usually detects the target node id during 
+	demotion. If the table is not populated in the right way during the memory 
+	hot plug, it may always return -1 and demotion may never happen. An easy 
+	hack is to always return the specific numa node id (the numa node where 
+	you want to demote, for example in a 2 numa setup, id numa node 1 hosts 
+	the CXL memory, just always return 1 from that function)"
+	*/
+	return 1;
 	int target;
 
 	/*
