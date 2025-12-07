@@ -90,7 +90,7 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
             // Don't retry if the compare exchange fails
             int ret = atomic_cmpxchg_relaxed(&fio->sbi->max_death_time, max_death_time, new_death_time);
             if (ret) {
-                f2fs_max_death_time_updated(max_death_time, new_death_time);
+                trace_f2fs_max_death_time_updated(max_death_time, new_death_time);
             }
         }
     }

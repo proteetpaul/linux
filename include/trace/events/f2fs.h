@@ -1309,7 +1309,7 @@ TRACE_EVENT(f2fs_death_time_update,
 	
 	TP_PROTO(struct inode *inode, loff_t page_index, unsigned int death_time_ms, unsigned int new_avg), 
 	
-	TP_ARGS(inode, page_index, death_time, new_avg), 
+	TP_ARGS(inode, page_index, death_time_ms, new_avg), 
 	
 	TP_STRUCT__entry(
 		__field(ino_t, inode)
@@ -1336,7 +1336,7 @@ TRACE_EVENT(f2fs_death_time_predict,
 	
 	TP_PROTO(struct inode *inode, loff_t page_index, unsigned int avg_death_time_ms, int segment), 
 	
-	TP_ARGS(inode, page_index, avg_death_time_ms, new_avg), 
+	TP_ARGS(inode, page_index, avg_death_time_ms, segment), 
 	
 	TP_STRUCT__entry(
 		__field(ino_t, inode)
@@ -1395,20 +1395,20 @@ TRACE_EVENT(f2fs_death_time_struct_free,
 
 TRACE_EVENT(f2fs_max_death_time_updated, 
 	
-	TP_PROTO(unsigned int old, unsigned int new),
+	TP_PROTO(unsigned int old, unsigned int new_time),
 	
-	TP_ARGS(old, new),
+	TP_ARGS(old, new_time),
 
 	TP_STRUCT__entry(
 		__field(unsigned int, old)
-		__field(unsigned int, new)
+		__field(unsigned int, new_time)
 	),
 	
 	TP_fast_assign(
 		__entry->old = old;
-		__entry->new = new;
+		__entry->new_time = new_time;
 	),
-	TP_printk("old = %u, new = %u", __entry->old, __entry->new)
+	TP_printk("old = %u, new = %u", __entry->old, __entry->new_time)
 );
 
 DECLARE_EVENT_CLASS(f2fs__folio,
