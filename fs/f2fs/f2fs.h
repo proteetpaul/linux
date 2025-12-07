@@ -8,6 +8,7 @@
 #ifndef _LINUX_F2FS_H
 #define _LINUX_F2FS_H
 
+#include "linux/xarray.h"
 #include <linux/uio.h>
 #include <linux/types.h>
 #include <linux/page-flags.h>
@@ -907,6 +908,8 @@ struct f2fs_inode_info {
 	loff_t	last_disk_size;		/* lastly written file size */
 	spinlock_t i_size_lock;		/* protect last_disk_size */
 
+	struct f2fs_death_time_info *death_time_info;
+
 #ifdef CONFIG_QUOTA
 	struct dquot __rcu *i_dquot[MAXQUOTAS];
 
@@ -956,6 +959,16 @@ struct f2fs_inode_info {
 #ifdef CONFIG_FS_VERITY
 	struct fsverity_info *i_verity_info; /* filesystem verity info */
 #endif
+};
+
+struct f2fs_chunk_death_time_info {
+	uint32_t last_updated_ms;
+	uint32_t avg_death_time;
+};
+
+struct f2fs_death_time_info {
+	uint64_t num_blocks;
+	struct xarray *per_blk_info;
 };
 
 static inline void get_read_extent_info(struct extent_info *ext,
@@ -1904,6 +1917,9 @@ struct f2fs_sb_info {
 
 	/* carve out reserved_blocks from total blocks */
 	bool carve_out;
+
+	/* Maximum death time */
+	atomic_t max_death_time;
 
 #ifdef CONFIG_F2FS_FS_COMPRESSION
 	struct kmem_cache *page_array_slab;	/* page array entry */
@@ -4973,6 +4989,15 @@ static inline void f2fs_invalidate_internal_cache(struct f2fs_sb_info *sbi,
 	f2fs_truncate_meta_inode_pages(sbi, blkaddr, len);
 	f2fs_invalidate_compress_pages_range(sbi, blkaddr, len);
 }
+
+/* death_time.c */
+void init_death_time_info(struct f2fs_inode_info *f2fs_inode, struct f2fs_sb_info *sbi);
+
+void dealloc_death_time_info(struct f2fs_inode_info *f2fs_inode);
+
+void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_info *f2fs_inode);
+
+int f2fs_get_segment_type_from_death_time(struct inode *inode, block_t file_offset);
 
 #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
 #define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */

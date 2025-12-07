@@ -3683,7 +3683,8 @@ static int __get_segment_type_6(struct f2fs_io_info *fio)
 		if (file_is_cold(inode) || f2fs_need_compress_data(inode))
 			return CURSEG_COLD_DATA;
 
-		type = __get_age_segment_type(inode, fio->folio->index);
+		// type = __get_age_segment_type(inode, fio->folio->index);
+		type = f2fs_get_segment_type_from_death_time(inode, fio->folio->index);
 		if (type != NO_CHECK_TYPE)
 			return type;
 
@@ -4034,8 +4035,11 @@ void f2fs_outplace_write_data(struct dnode_of_data *dn,
 	struct f2fs_summary sum;
 
 	f2fs_bug_on(sbi, dn->data_blkaddr == NULL_ADDR);
-	if (fio->io_type == FS_DATA_IO || fio->io_type == FS_CP_DATA_IO)
-		f2fs_update_age_extent_cache(dn);
+	// if (fio->io_type == FS_DATA_IO || fio->io_type == FS_CP_DATA_IO)
+	// 	f2fs_update_age_extent_cache(dn);
+	if (fio->io_type == FS_DATA_IO || fio->io_type == FS_CP_DATA_IO) {
+		f2fs_update_death_time_info(fio, F2FS_I(dn->inode));
+	}
 	set_summary(&sum, dn->nid, dn->ofs_in_node, fio->version);
 	do_write_page(&sum, fio);
 	f2fs_update_data_blkaddr(dn, fio->new_blkaddr);
