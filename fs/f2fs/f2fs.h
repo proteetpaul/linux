@@ -4993,7 +4993,7 @@ static inline void f2fs_invalidate_internal_cache(struct f2fs_sb_info *sbi,
 /* death_time.c */
 void init_death_time_info(struct f2fs_inode_info *f2fs_inode, struct f2fs_sb_info *sbi);
 
-void dealloc_death_time_info(struct f2fs_inode_info *f2fs_inode);
+void free_death_time_info(struct f2fs_inode_info *f2fs_inode);
 
 void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_info *f2fs_inode);
 

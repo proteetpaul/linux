@@ -1904,6 +1904,7 @@ static void f2fs_free_inode(struct inode *inode)
 {
 	fscrypt_free_inode(inode);
 	kmem_cache_free(f2fs_inode_cachep, F2FS_I(inode));
+	free_death_time_info(F2FS_I(inode));
 }
 
 static void destroy_percpu_info(struct f2fs_sb_info *sbi)

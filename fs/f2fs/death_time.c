@@ -44,9 +44,10 @@ void init_death_time_info(struct f2fs_inode_info *f2fs_inode, struct f2fs_sb_inf
     struct f2fs_death_time_info *dt_info = f2fs_kmem_cache_alloc(death_time_kmem_cache, GFP_KERNEL, true, sbi);
     xa_init(dt_info->per_blk_info);
     f2fs_inode->death_time_info = dt_info;
+    trace_f2fs_death_time_struct_init(f2fs_inode->vfs_inode);
 }
 
-void dealloc_death_time_info(struct f2fs_inode_info *f2fs_inode) {
+void free_death_time_info(struct f2fs_inode_info *f2fs_inode) {
     unsigned long index;
     void *entry;
 
@@ -55,6 +56,7 @@ void dealloc_death_time_info(struct f2fs_inode_info *f2fs_inode) {
     }
     xa_destroy(f2fs_inode->death_time_info->per_blk_info);
     kmem_cache_free(death_time_kmem_cache, (void *)f2fs_inode->death_time_info);
+    trace_f2fs_death_time_struct_free(f2fs_inode->vfs_inode);
 }
 
 inline void *_init_chunk_death_time_info(struct f2fs_sb_info *sbi) {
@@ -70,9 +72,10 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
     unsigned int max_death_time = atomic_read(&fio->sbi->max_death_time);
 
     if (chunk_info == NULL) {        
-        chunk_info = f2fs_kmem_cache_alloc(chunk_dt_kmem_cache, GFP_KERNEL, true, sbi);
+        chunk_info = f2fs_kmem_cache_alloc(chunk_dt_kmem_cache, GFP_KERNEL, true, fio->sbi);
         chunk_info->last_updated_ms = now_msecs;
         chunk_info->avg_death_time = 0;
+        trace_f2fs_death_time_update(f2fs_inode->vfs_inode, file_offset_pages, now_msecs, 0);
         xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
     } else if (chunk_info->last_updated_ms < now_msecs) {
         // Don't update too frequently
@@ -82,13 +85,18 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
         chunk_info->avg_death_time = new_dt_avg;
         xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
         
+        trace_f2fs_death_time_update(f2fs_inode->vfs_inode, file_offset_pages, now_msecs, new_dt_avg);
         if (new_death_time > max_death_time) {
             // Don't retry if the compare exchange fails
             int ret = atomic_cmpxchg_relaxed(&fio->sbi->max_death_time, max_death_time, new_death_time);
+            if (ret) {
+                f2fs_max_death_time_updated(max_death_time, new_death_time);
+            }
         }
     }
 }
 
+// Assumption: 3 data streams
 int f2fs_get_segment_type_from_death_time(struct inode *inode, block_t file_offset) {
     block_t chunk_offset = file_offset / CHUNK_SIZE;
 
@@ -98,9 +106,14 @@ int f2fs_get_segment_type_from_death_time(struct inode *inode, block_t file_offs
 
     struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
     unsigned int max_death_time = atomic_read(&sbi->max_death_time);
-    unsigned int cold_threshold = icbrt(max_death_time);
-    unsigned int warm_threshold = max_death_time * max_death_time;
-    if (chunk_info->avg_death_time < cold_threshold) return CURSEG_COLD_DATA;
-    if (chunk_info->avg_death_time < warm_threshold) return CURSEG_WARM_DATA;
-    return CURSEG_HOT_DATA;
+    unsigned int hot_threshold = icbrt(max_death_time);
+    unsigned int warm_threshold = hot_threshold * hot_threshold;
+    int segment = CURSEG_WARM_DATA;
+    if (chunk_info->avg_death_time != 0) {
+        segment = (chunk_info->avg_death_time < hot_threshold) ? CURSEG_HOT_DATA :
+            (chunk_info->avg_death_time < warm_threshold) ? CURSEG_WARM_DATA : 
+                CURSEG_COLD_DATA;
+    }
+    trace_f2fs_death_time_predict(inode, file_offset, chunk_info->avg_death_time, segment);
+    return segment;
 }

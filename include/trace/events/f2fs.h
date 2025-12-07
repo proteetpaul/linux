@@ -1305,6 +1305,112 @@ TRACE_EVENT(f2fs_write_end,
 		__entry->copied)
 );
 
+TRACE_EVENT(f2fs_death_time_update, 
+	
+	TP_PROTO(struct inode *inode, loff_t page_index, unsigned int death_time_ms, unsigned int new_avg), 
+	
+	TP_ARGS(inode, page_index, death_time, new_avg), 
+	
+	TP_STRUCT__entry(
+		__field(ino_t, inode)
+		__field(loff_t, page_index)
+		__field(unsigned int, death_time_ms)
+		__field(unsigned int, new_avg)
+	), 
+	
+	TP_fast_assign(
+		__entry->inode = inode->i_ino;
+		__entry->death_time_ms = death_time_ms;
+		__entry->page_index = page_index;
+		__entry->new_avg = new_avg;
+	), 
+	
+	TP_printk("ino = %lu, page_index = %llu, death_time = %u, new_dt_avg = %u",
+		__entry->inode, 
+		__entry->page_index, 
+		__entry->death_time_ms, 
+		__entry->new_avg)
+);
+
+TRACE_EVENT(f2fs_death_time_predict, 
+	
+	TP_PROTO(struct inode *inode, loff_t page_index, unsigned int avg_death_time_ms, int segment), 
+	
+	TP_ARGS(inode, page_index, avg_death_time_ms, new_avg), 
+	
+	TP_STRUCT__entry(
+		__field(ino_t, inode)
+		__field(loff_t, page_index)
+		__field(unsigned int, avg_death_time_ms)
+		__field(int, segment)
+	), 
+	
+	TP_fast_assign(
+		__entry->inode = inode->i_ino;
+		__entry->avg_death_time_ms = avg_death_time_ms;
+		__entry->page_index = page_index;
+		__entry->segment = segment;
+	), 
+	
+	TP_printk("ino = %lu, page_index = %llu, death_time = %u ms, predicted segment = %u ms",
+		__entry->inode, 
+		__entry->page_index, 
+		__entry->avg_death_time_ms, 
+		__entry->segment)
+);
+
+TRACE_EVENT(f2fs_death_time_struct_init, 
+	
+	TP_PROTO(struct inode *inode), 
+	
+	TP_ARGS(inode), 
+	
+	TP_STRUCT__entry(
+		__field(ino_t, inode)
+	), 
+	
+	TP_fast_assign(
+		__entry->inode = inode->i_ino;
+	), 
+	
+	TP_printk("ino = %lu", __entry->inode)
+);
+
+TRACE_EVENT(f2fs_death_time_struct_free, 
+	
+	TP_PROTO(struct inode *inode), 
+	
+	TP_ARGS(inode), 
+	
+	TP_STRUCT__entry(
+		__field(ino_t, inode)
+	), 
+	
+	TP_fast_assign(
+		__entry->inode = inode->i_ino;
+	), 
+	
+	TP_printk("ino = %lu", __entry->inode)
+);
+
+TRACE_EVENT(f2fs_max_death_time_updated, 
+	
+	TP_PROTO(unsigned int old, unsigned int new),
+	
+	TP_ARGS(old, new),
+
+	TP_STRUCT__entry(
+		__field(unsigned int, old)
+		__field(unsigned int, new)
+	),
+	
+	TP_fast_assign(
+		__entry->old = old;
+		__entry->new = new;
+	),
+	TP_printk("old = %u, new = %u", __entry->old, __entry->new)
+);
+
 DECLARE_EVENT_CLASS(f2fs__folio,
 
 	TP_PROTO(struct folio *folio, int type),
