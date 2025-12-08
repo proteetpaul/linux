@@ -8,6 +8,7 @@
  * Copyright (c) 2012 Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  */
 
+#include "linux/rwsem.h"
 #include <linux/fs.h>
 #include <linux/backing-dev.h>
 #include <linux/f2fs_fs.h>
@@ -435,6 +436,33 @@ static const char *ipu_mode_names[F2FS_IPU_MAX] = {
 	[F2FS_IPU_HONOR_OPU_WRITE]	= "HONOR_OPU_WRITE",
 };
 
+// Print the information (type and number of valid pages) of all segments that were modified since mount
+static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
+	seq_printf(s, "\n=====[ Segment information ]=======\n");
+	struct f2fs_sm_info *sm_info = sbi->sm_info;
+	struct sit_info *sit_info = sbi->sm_info->sit_info;
+	struct seg_entry entries[sm_info->main_segments];
+
+	down_read(sit_info->sentry_lock);	
+	struct seg_entry *seg_entries = sit_info->sentries;
+	
+	unsigned int starting_segment = GET_SEGNO(sm_info->main_blkaddr);
+	unsigned int j = 0;
+	for (unsigned int i=0; i<sm_info->main_segments; i++) {
+		struct seg_entry entry = seg_entries[starting_segment + i];
+		if (entry.mtime > sit_info->mounted_time && entry.type <= CURSEG_COLD_DATA) {
+			entries[j] = entry;
+		}
+	}
+
+	up_read(sit_info->sentry_lock);
+
+	for (unsigned int i=0; i<j; i++) {
+		seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", i, 
+			entries[i].valid_blocks, entries[i].type);
+	}
+}
+
 static int stat_show(struct seq_file *s, void *v)
 {
 	struct f2fs_stat_info *si;
@@ -751,6 +779,8 @@ static int stat_show(struct seq_file *s, void *v)
 				si->ext_mem[EX_BLOCK_AGE] >> 10);
 		seq_printf(s, "  - paged : %llu KB\n",
 				si->page_mem >> 10);
+
+		show_segment_info(s, sbi);
 	}
 	spin_unlock(&f2fs_stat_lock);
 	return 0;
