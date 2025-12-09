@@ -454,7 +454,7 @@ static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 	for (unsigned int i=0; i<sm_info->main_segments; i++) {
 		struct seg_entry entry = seg_entries[starting_segment + i];
 		if (entry.mtime > sit_info->mounted_time && entry.type <= CURSEG_COLD_DATA) {
-			entries[j] = entry;
+			entries[j++] = entry;
 		}
 	}
 
