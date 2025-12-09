@@ -24,6 +24,7 @@
 #include <linux/quotaops.h>
 #include <linux/part_stat.h>
 #include <linux/rw_hint.h>
+#include <linux/f2fs_fs.h>
 
 #include <linux/fscrypt.h>
 #include <linux/fsverity.h>
