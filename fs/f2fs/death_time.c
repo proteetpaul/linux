@@ -43,7 +43,7 @@ void init_death_time_info(struct f2fs_inode_info *f2fs_inode, struct f2fs_sb_inf
         chunk_dt_kmem_cache = f2fs_kmem_cache_create("f2fs_chunk_death_time_cache", sizeof(struct f2fs_chunk_death_time_info));
     }
     struct f2fs_death_time_info *dt_info = f2fs_kmem_cache_alloc(death_time_kmem_cache, GFP_KERNEL, true, sbi);
-    xa_init(dt_info->per_blk_info);
+    xa_init(&dt_info->per_blk_info);
     f2fs_inode->death_time_info = dt_info;
     trace_f2fs_death_time_struct_init(&f2fs_inode->vfs_inode);
 }
@@ -52,10 +52,10 @@ void free_death_time_info(struct f2fs_inode_info *f2fs_inode) {
     unsigned long index;
     void *entry;
 
-    xa_for_each(f2fs_inode->death_time_info->per_blk_info, index, entry) {
+    xa_for_each(&f2fs_inode->death_time_info->per_blk_info, index, entry) {
         kmem_cache_free(chunk_dt_kmem_cache, entry);
     }
-    xa_destroy(f2fs_inode->death_time_info->per_blk_info);
+    xa_destroy(&f2fs_inode->death_time_info->per_blk_info);
     kmem_cache_free(death_time_kmem_cache, (void *)f2fs_inode->death_time_info);
     trace_f2fs_death_time_struct_free(&f2fs_inode->vfs_inode);
 }
@@ -69,7 +69,7 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
     block_t file_offset_pages = fio->folio->index;
     block_t chunk_offset = file_offset_pages / CHUNK_SIZE;
 
-    struct f2fs_chunk_death_time_info *chunk_info = xa_load(f2fs_inode->death_time_info->per_blk_info, chunk_offset);
+    struct f2fs_chunk_death_time_info *chunk_info = xa_load(&f2fs_inode->death_time_info->per_blk_info, chunk_offset);
     unsigned int max_death_time = atomic_read(&fio->sbi->max_death_time);
 
     if (chunk_info == NULL) {        
@@ -77,14 +77,14 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
         chunk_info->last_updated_ms = now_msecs;
         chunk_info->avg_death_time = 0;
         trace_f2fs_death_time_update(&f2fs_inode->vfs_inode, file_offset_pages, now_msecs, 0);
-        xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
+        xa_store(&f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
     } else if (chunk_info->last_updated_ms < now_msecs) {
         // Don't update too frequently
         unsigned int new_death_time = (now_msecs - chunk_info->last_updated_ms);
         unsigned int new_dt_avg = (chunk_info->avg_death_time == 0) ? new_death_time:  (chunk_info->avg_death_time * (100 - weight) + new_death_time * weight) / 100;
         chunk_info->last_updated_ms = now_msecs;
         chunk_info->avg_death_time = new_dt_avg;
-        xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
+        xa_store(&f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
         
         trace_f2fs_death_time_update(&f2fs_inode->vfs_inode, file_offset_pages, now_msecs, new_dt_avg);
         if (new_death_time > max_death_time) {
@@ -102,7 +102,7 @@ int f2fs_get_segment_type_from_death_time(struct inode *inode, block_t file_offs
     block_t chunk_offset = file_offset / CHUNK_SIZE;
 
     struct f2fs_inode_info *f2fs_inode = F2FS_I(inode);
-    struct f2fs_chunk_death_time_info *chunk_info = xa_load(f2fs_inode->death_time_info->per_blk_info, chunk_offset);
+    struct f2fs_chunk_death_time_info *chunk_info = xa_load(&f2fs_inode->death_time_info->per_blk_info, chunk_offset);
     if (unlikely(chunk_info == NULL)) return NO_CHECK_TYPE;
 
     struct f2fs_sb_info *sbi = F2FS_I_SB(inode);

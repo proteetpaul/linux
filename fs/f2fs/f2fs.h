@@ -890,7 +890,7 @@ struct f2fs_chunk_death_time_info {
 
 struct f2fs_death_time_info {
 	uint64_t num_blocks;
-	struct xarray *per_blk_info;
+	struct xarray per_blk_info;
 };
 
 struct f2fs_inode_info {
