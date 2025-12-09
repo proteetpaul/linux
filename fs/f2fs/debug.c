@@ -8,7 +8,9 @@
  * Copyright (c) 2012 Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  */
 
+#include "linux/gfp_types.h"
 #include "linux/rwsem.h"
+#include "linux/slab.h"
 #include <linux/fs.h>
 #include <linux/backing-dev.h>
 #include <linux/f2fs_fs.h>
@@ -441,7 +443,8 @@ static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 	seq_printf(s, "\n=====[ Segment information ]=======\n");
 	struct f2fs_sm_info *sm_info = sbi->sm_info;
 	struct sit_info *sit_info = sbi->sm_info->sit_info;
-	struct seg_entry entries[sm_info->main_segments];
+	struct seg_entry *entries;
+	entries = kzalloc(sm_info->main_segments * sizeof(struct seg_entry), GFP_KERNEL);
 
 	down_read(&sit_info->sentry_lock);
 	struct seg_entry *seg_entries = sit_info->sentries;
@@ -461,6 +464,7 @@ static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 		seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", i, 
 			entries[i].valid_blocks, entries[i].type);
 	}
+	kfree(seg_entries);
 }
 
 static int stat_show(struct seq_file *s, void *v)
