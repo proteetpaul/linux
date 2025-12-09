@@ -442,29 +442,34 @@ static const char *ipu_mode_names[F2FS_IPU_MAX] = {
 static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 	seq_printf(s, "\n=====[ Segment information ]=======\n");
 	struct f2fs_sm_info *sm_info = sbi->sm_info;
-	struct sit_info *sit_info = sbi->sm_info->sit_info;
-	struct seg_entry *entries;
-	entries = kzalloc(sm_info->main_segments * sizeof(struct seg_entry), GFP_KERNEL);
+	// struct sit_info *sit_info = sbi->sm_info->sit_info;
+	// struct seg_entry *entries;
+	// entries = kzalloc(sm_info->main_segments * sizeof(struct seg_entry), GFP_KERNEL);
 
-	down_read(&sit_info->sentry_lock);
-	struct seg_entry *seg_entries = sit_info->sentries;
+	// down_read(&sit_info->sentry_lock);
+	// struct seg_entry *seg_entries = sit_info->sentries;
 	unsigned int starting_segment = GET_SEGNO(sbi, sm_info->main_blkaddr);
 	
 	unsigned int j = 0;
 	for (unsigned int i=0; i<sm_info->main_segments; i++) {
-		struct seg_entry entry = seg_entries[starting_segment + i];
-		if (entry.mtime > sit_info->mounted_time && entry.type <= CURSEG_COLD_DATA) {
-			entries[j++] = entry;
+		// struct seg_entry entry = seg_entries[starting_segment + i];
+		// if (entry.mtime > sit_info->mounted_time && entry.type <= CURSEG_COLD_DATA) {
+		// 	entries[j++] = entry;
+		// }
+		struct seg_entry *entry = get_seg_entry(sbi, starting_segment + i);
+		if (entry->valid_blocks > 0 && entry->type <= CURSEG_COLD_DATA) {
+			seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", starting_segment + i, 
+				entry->valid_blocks, entry->type);
 		}
 	}
 
-	up_read(&sit_info->sentry_lock);
+	// up_read(&sit_info->sentry_lock);
 
-	for (unsigned int i=0; i<j; i++) {
-		seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", i, 
-			entries[i].valid_blocks, entries[i].type);
-	}
-	kfree(seg_entries);
+	// for (unsigned int i=0; i<j; i++) {
+	// 	seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", i, 
+	// 		entries[i].valid_blocks, entries[i].type);
+	// }
+	// kfree(seg_entries);
 }
 
 static int stat_show(struct seq_file *s, void *v)
