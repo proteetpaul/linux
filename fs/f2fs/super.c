@@ -5,7 +5,6 @@
  * Copyright (c) 2012 Samsung Electronics Co., Ltd.
  *             http://www.samsung.com/
  */
-#include "linux/atomic/atomic-instrumented.h"
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/fs.h>

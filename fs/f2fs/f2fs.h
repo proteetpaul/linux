@@ -25,6 +25,7 @@
 #include <linux/quotaops.h>
 #include <linux/part_stat.h>
 #include <linux/rw_hint.h>
+#include <linux/f2fs_fs.h>
 
 #include <linux/fscrypt.h>
 #include <linux/fsverity.h>
@@ -882,6 +883,16 @@ enum {
 	FI_MAX,			/* max flag, never be used */
 };
 
+struct f2fs_chunk_death_time_info {
+	uint32_t last_updated_ms;
+	uint32_t avg_death_time;
+};
+
+struct f2fs_death_time_info {
+	uint64_t num_blocks;
+	struct xarray *per_blk_info;
+};
+
 struct f2fs_inode_info {
 	struct inode vfs_inode;		/* serve a vfs inode */
 	unsigned long i_flags;		/* keep an inode flags for ioctl */
@@ -959,16 +970,6 @@ struct f2fs_inode_info {
 #ifdef CONFIG_FS_VERITY
 	struct fsverity_info *i_verity_info; /* filesystem verity info */
 #endif
-};
-
-struct f2fs_chunk_death_time_info {
-	uint32_t last_updated_ms;
-	uint32_t avg_death_time;
-};
-
-struct f2fs_death_time_info {
-	uint64_t num_blocks;
-	struct xarray *per_blk_info;
 };
 
 static inline void get_read_extent_info(struct extent_info *ext,

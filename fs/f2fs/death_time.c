@@ -1,5 +1,4 @@
 #include "f2fs.h"
-#include "linux/atomic/atomic-instrumented.h"
 #include "linux/types.h"
 #include "node.h"
 
@@ -8,7 +7,9 @@
 #include "linux/jiffies.h"
 #include "linux/slab.h"
 #include "linux/stddef.h"
+#include <linux/atomic.h>
 #include <linux/xarray.h>
+#include <trace/events/f2fs.h>
 
 #define CHUNK_SIZE 512      // No. of sectors in each chunk
 #define weight 70           // For weighted moving average calculations
@@ -44,7 +45,7 @@ void init_death_time_info(struct f2fs_inode_info *f2fs_inode, struct f2fs_sb_inf
     struct f2fs_death_time_info *dt_info = f2fs_kmem_cache_alloc(death_time_kmem_cache, GFP_KERNEL, true, sbi);
     xa_init(dt_info->per_blk_info);
     f2fs_inode->death_time_info = dt_info;
-    trace_f2fs_death_time_struct_init(f2fs_inode->vfs_inode);
+    trace_f2fs_death_time_struct_init(&f2fs_inode->vfs_inode);
 }
 
 void free_death_time_info(struct f2fs_inode_info *f2fs_inode) {
@@ -56,7 +57,7 @@ void free_death_time_info(struct f2fs_inode_info *f2fs_inode) {
     }
     xa_destroy(f2fs_inode->death_time_info->per_blk_info);
     kmem_cache_free(death_time_kmem_cache, (void *)f2fs_inode->death_time_info);
-    trace_f2fs_death_time_struct_free(f2fs_inode->vfs_inode);
+    trace_f2fs_death_time_struct_free(&f2fs_inode->vfs_inode);
 }
 
 inline void *_init_chunk_death_time_info(struct f2fs_sb_info *sbi) {
@@ -75,7 +76,7 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
         chunk_info = f2fs_kmem_cache_alloc(chunk_dt_kmem_cache, GFP_KERNEL, true, fio->sbi);
         chunk_info->last_updated_ms = now_msecs;
         chunk_info->avg_death_time = 0;
-        trace_f2fs_death_time_update(f2fs_inode->vfs_inode, file_offset_pages, now_msecs, 0);
+        trace_f2fs_death_time_update(&f2fs_inode->vfs_inode, file_offset_pages, now_msecs, 0);
         xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
     } else if (chunk_info->last_updated_ms < now_msecs) {
         // Don't update too frequently
@@ -85,7 +86,7 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
         chunk_info->avg_death_time = new_dt_avg;
         xa_store(f2fs_inode->death_time_info->per_blk_info, chunk_offset, (void *)chunk_info, GFP_KERNEL);
         
-        trace_f2fs_death_time_update(f2fs_inode->vfs_inode, file_offset_pages, now_msecs, new_dt_avg);
+        trace_f2fs_death_time_update(&f2fs_inode->vfs_inode, file_offset_pages, now_msecs, new_dt_avg);
         if (new_death_time > max_death_time) {
             // Don't retry if the compare exchange fails
             int ret = atomic_cmpxchg_relaxed(&fio->sbi->max_death_time, max_death_time, new_death_time);
