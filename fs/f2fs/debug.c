@@ -443,10 +443,10 @@ static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 	struct sit_info *sit_info = sbi->sm_info->sit_info;
 	struct seg_entry entries[sm_info->main_segments];
 
-	down_read(sit_info->sentry_lock);	
+	down_read(&sit_info->sentry_lock);
 	struct seg_entry *seg_entries = sit_info->sentries;
+	unsigned int starting_segment = GET_SEGNO(sbi, sm_info->main_blkaddr);
 	
-	unsigned int starting_segment = GET_SEGNO(sm_info->main_blkaddr);
 	unsigned int j = 0;
 	for (unsigned int i=0; i<sm_info->main_segments; i++) {
 		struct seg_entry entry = seg_entries[starting_segment + i];
@@ -455,7 +455,7 @@ static void show_segment_info(struct seq_file *s, struct f2fs_sb_info *sbi) {
 		}
 	}
 
-	up_read(sit_info->sentry_lock);
+	up_read(&sit_info->sentry_lock);
 
 	for (unsigned int i=0; i<j; i++) {
 		seq_printf(s, "Segment no.: %u, Valid: %u, type: %u\n", i, 
