@@ -11,7 +11,7 @@
 #include <linux/xarray.h>
 #include <trace/events/f2fs.h>
 
-#define CHUNK_SIZE 512      // No. of sectors in each chunk
+#define CHUNK_SIZE 16      // No. of sectors in each chunk
 #define weight 70           // For weighted moving average calculations
 
 static struct kmem_cache *death_time_kmem_cache;
