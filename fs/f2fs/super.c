@@ -5087,6 +5087,8 @@ try_onemore:
 	sbi->last_valid_block_count = sbi->total_valid_block_count;
 	sbi->reserved_blocks = 0;
 	sbi->current_reserved_blocks = 0;
+	atomic_set(&sbi->min_death_time, 1000);
+	atomic_set(&sbi->max_death_time, 10000);
 	limit_reserve_root(sbi);
 	adjust_unusable_cap_perc(sbi);
 
