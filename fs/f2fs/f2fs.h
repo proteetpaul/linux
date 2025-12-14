@@ -229,6 +229,10 @@ struct f2fs_mount_info {
 	unsigned char extensions[COMPRESS_EXT_NUM][F2FS_EXTENSION_LEN];	/* extensions */
 	unsigned char noextensions[COMPRESS_EXT_NUM][F2FS_EXTENSION_LEN]; /* extensions */
 	unsigned int lookup_mode;
+	/* Chunk size (in number of pages) granularity at which to track death time */
+	unsigned int dt_chunk_size;
+	/* Weight for calculating moving average of death time */
+	unsigned int dt_average_weight;
 };
 
 #define F2FS_FEATURE_ENCRYPT			0x00000001
@@ -1921,6 +1925,9 @@ struct f2fs_sb_info {
 
 	/* Maximum death time */
 	atomic_t max_death_time;
+
+	/* Minimum death time */
+	atomic_t min_death_time;
 
 #ifdef CONFIG_F2FS_FS_COMPRESSION
 	struct kmem_cache *page_array_slab;	/* page array entry */

@@ -183,6 +183,8 @@ enum {
 	Opt_jqfmt,
 	Opt_checkpoint,
 	Opt_lookup_mode,
+	Opt_dt_weight,
+	Opt_dt_chunk_size,
 	Opt_err,
 };
 
@@ -311,6 +313,8 @@ static const struct fs_parameter_spec f2fs_param_specs[] = {
 	fsparam_flag("age_extent_cache", Opt_age_extent_cache),
 	fsparam_enum("errors", Opt_errors, f2fs_param_errors),
 	fsparam_enum("lookup_mode", Opt_lookup_mode, f2fs_param_lookup_mode),
+	fsparam_u32("death_time_weight", Opt_dt_weight),
+	fsparam_u32("death_time_chunk_size", Opt_dt_chunk_size),
 	{}
 };
 
@@ -773,6 +777,12 @@ static int f2fs_parse_param(struct fs_context *fc, struct fs_parameter *param)
 	case Opt_noheap:
 	case Opt_heap:
 		f2fs_warn(NULL, "heap/no_heap options were deprecated");
+		break;
+	case Opt_dt_chunk_size:
+		F2FS_CTX_INFO(ctx).dt_chunk_size = result.uint_32;
+		break;
+	case Opt_dt_weight:
+		F2FS_CTX_INFO(ctx).dt_average_weight = result.uint_32;
 		break;
 #ifdef CONFIG_F2FS_FS_XATTR
 	case Opt_user_xattr:
@@ -1664,6 +1674,9 @@ static void f2fs_apply_options(struct fs_context *fc, struct super_block *sb)
 
 	F2FS_OPTION(sbi).opt &= ~ctx->opt_mask;
 	F2FS_OPTION(sbi).opt |= F2FS_CTX_INFO(ctx).opt;
+
+	F2FS_OPTION(sbi).dt_average_weight = F2FS_CTX_INFO(ctx).dt_average_weight;
+	F2FS_OPTION(sbi).dt_chunk_size = F2FS_CTX_INFO(ctx).dt_chunk_size;
 
 	if (ctx->spec_mask & F2FS_SPEC_background_gc)
 		F2FS_OPTION(sbi).bggc_mode = F2FS_CTX_INFO(ctx).bggc_mode;
