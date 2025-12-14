@@ -62,6 +62,9 @@ inline void *_init_chunk_death_time_info(struct f2fs_sb_info *sbi) {
 }
 
 void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_info *f2fs_inode) {
+    if (F2FS_OPTION(fio->sbi).dt_predict_disabled) {
+        return;
+    }
     unsigned int now_msecs = jiffies_to_msecs(jiffies);
     block_t file_offset_pages = fio->folio->index;
     block_t chunk_offset = file_offset_pages / F2FS_OPTION(fio->sbi).dt_chunk_size;
@@ -100,9 +103,12 @@ void f2fs_update_death_time_info(struct f2fs_io_info *fio, struct f2fs_inode_inf
 
 // Assumption: 3 data streams
 int f2fs_get_segment_type_from_death_time(struct inode *inode, block_t file_offset) {
-    struct f2fs_inode_info *f2fs_inode = F2FS_I(inode);
     struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-
+    if (sbi->mount_opt.dt_predict_disabled) {
+        return NO_CHECK_TYPE;
+    }
+    
+    struct f2fs_inode_info *f2fs_inode = F2FS_I(inode);
     block_t chunk_offset = file_offset / F2FS_OPTION(sbi).dt_chunk_size;
 
     struct f2fs_chunk_death_time_info *chunk_info = xa_load(&f2fs_inode->death_time_info->per_blk_info, chunk_offset);

@@ -233,6 +233,7 @@ struct f2fs_mount_info {
 	unsigned int dt_chunk_size;
 	/* Weight for calculating moving average of death time */
 	unsigned int dt_average_weight;
+	bool dt_predict_disabled;
 };
 
 #define F2FS_FEATURE_ENCRYPT			0x00000001

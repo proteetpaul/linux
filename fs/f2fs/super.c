@@ -185,6 +185,7 @@ enum {
 	Opt_lookup_mode,
 	Opt_dt_weight,
 	Opt_dt_chunk_size,
+	Opt_dt_prediction_disable,
 	Opt_err,
 };
 
@@ -315,6 +316,7 @@ static const struct fs_parameter_spec f2fs_param_specs[] = {
 	fsparam_enum("lookup_mode", Opt_lookup_mode, f2fs_param_lookup_mode),
 	fsparam_u32("death_time_weight", Opt_dt_weight),
 	fsparam_u32("death_time_chunk_size", Opt_dt_chunk_size),
+	fsparam_flag("disable_dt_predict", Opt_dt_prediction_disable),
 	{}
 };
 
@@ -353,6 +355,7 @@ static match_table_t f2fs_checkpoint_tokens = {
 #define F2FS_SPEC_errors			(1 << 23)
 #define F2FS_SPEC_lookup_mode			(1 << 24)
 #define F2FS_SPEC_reserve_node			(1 << 25)
+#define F2FS_SPEC_disable_dt_predict	(1 << 26)
 
 struct f2fs_fs_context {
 	struct f2fs_mount_info info;
@@ -783,6 +786,9 @@ static int f2fs_parse_param(struct fs_context *fc, struct fs_parameter *param)
 		break;
 	case Opt_dt_weight:
 		F2FS_CTX_INFO(ctx).dt_average_weight = result.uint_32;
+		break;
+	case Opt_dt_prediction_disable:
+		ctx->spec_mask |= F2FS_SPEC_disable_dt_predict;
 		break;
 #ifdef CONFIG_F2FS_FS_XATTR
 	case Opt_user_xattr:
@@ -1677,6 +1683,7 @@ static void f2fs_apply_options(struct fs_context *fc, struct super_block *sb)
 
 	F2FS_OPTION(sbi).dt_average_weight = F2FS_CTX_INFO(ctx).dt_average_weight;
 	F2FS_OPTION(sbi).dt_chunk_size = F2FS_CTX_INFO(ctx).dt_chunk_size;
+	F2FS_OPTION(sbi).dt_predict_disabled = ctx->spec_mask & F2FS_SPEC_disable_dt_predict;
 
 	if (ctx->spec_mask & F2FS_SPEC_background_gc)
 		F2FS_OPTION(sbi).bggc_mode = F2FS_CTX_INFO(ctx).bggc_mode;
